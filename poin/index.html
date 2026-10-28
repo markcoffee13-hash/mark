@@ -1,0 +1,95 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Poin MARK COFFEE</title><meta name="theme-color" content="#0b2a17">
+<link rel="icon" href="../icon-192.png">
+<style>
+:root{--bg:#0b2a17;--card:#123a22;--line:#1f5733;--g:#2e8b57;--t:#f5efe3;--m:#a9cdb6;--w:#f0b429}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--t);font:16px/1.45 system-ui,sans-serif;padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom)}
+main{max-width:480px;margin:0 auto;padding:24px 0 40px}
+h1{font-size:20px;letter-spacing:.14em;text-align:center;margin:8px 0 2px}
+.sub{text-align:center;color:var(--m);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px}
+input{width:100%;padding:14px;border-radius:12px;border:1px solid var(--line);background:#0b2a17;color:var(--t);font-size:17px;margin:6px 0 12px}
+button,.btn{display:block;width:100%;padding:13px;border:0;border-radius:12px;background:var(--g);color:#fff;font-size:16px;font-weight:700;text-align:center;text-decoration:none;cursor:pointer}
+button:disabled{background:#2b4a38;color:#7fa18c}.alt{background:transparent;border:1px solid var(--g);color:var(--t)}
+.pts{font-size:56px;font-weight:800;line-height:1;text-align:center}.lbl{text-align:center;color:var(--m)}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}.row b{display:block}.row small{color:var(--m)}.row button{width:auto;padding:10px 16px}
+.code{font-size:40px;font-weight:800;letter-spacing:.2em;text-align:center;color:var(--w)}
+.err{color:#ff9d9d;min-height:1.4em;margin:0 0 8px}.hide{display:none}
+h2{font-size:15px;margin:0 0 6px;color:var(--m);text-transform:uppercase;letter-spacing:.08em}
+</style></head><body><main>
+<h1>MARK COFFEE</h1><p class="sub">Cek poin &amp; tukar hadiah</p>
+
+<section id="v-login" class="card">
+  <label for="hp">Nomor HP</label>
+  <input id="hp" inputmode="tel" placeholder="08xxxxxxxxxx" autocomplete="tel">
+  <div id="nameBox" class="hide"><label for="nm">Nama (untuk pendaftaran baru)</label><input id="nm" placeholder="Nama kamu" maxlength="40"></div>
+  <p class="err" id="e1"></p>
+  <button id="go">Lanjut</button>
+</section>
+
+<section id="v-main" class="hide">
+  <div class="card"><div class="lbl" id="hi"></div><div class="pts" id="pts">0</div><div class="lbl">poin</div></div>
+  <div id="pend"></div>
+  <div class="card"><h2>Tukar hadiah</h2><div id="rw"></div></div>
+  <div class="card" id="bonus"><h2>Bonus poin</h2><div id="bn"></div></div>
+  <p class="err" id="e2"></p>
+  <button class="alt" id="out">Ganti nomor</button>
+</section>
+</main>
+<script>
+const SB='https://njarogebxlsovwrquxyi.supabase.co',KEY='sb_publishable_oObybihfrHNgN8QSAJ550Q_QB-VidWS';
+const IG='https://www.instagram.com/_markcoffee',TT='https://www.tiktok.com/@dax_x13';
+const $=i=>document.getElementById(i);let phone='',info=null;
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function rpc(fn,args){
+  const r=await fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify(args)});
+  const j=await r.json().catch(()=>null);
+  if(!r.ok)throw new Error((j&&j.message)||'Terjadi kesalahan, coba lagi');
+  return j;
+}
+function store(v){try{v==null?localStorage.removeItem('mc_hp'):localStorage.setItem('mc_hp',v)}catch(e){}}
+function saved(){try{return localStorage.getItem('mc_hp')||''}catch(e){return ''}}
+async function load(){
+  info=await rpc('member_info',{p_phone:phone});
+  if(!info)return false;
+  $('v-login').classList.add('hide');$('v-main').classList.remove('hide');
+  $('hi').textContent='Halo, '+(info.name||'sahabat MARK')+' ☕';
+  $('pts').textContent=info.points;
+  $('pend').innerHTML=info.pending.map(p=>'<div class="card"><div class="lbl">Tunjukkan kode ini ke kasir'+
+    (p.reward?' untuk '+esc(p.reward):p.type==='ig'?' (bonus Instagram)':' (bonus TikTok)')+'</div><div class="code">'+esc(p.code)+'</div></div>').join('');
+  $('rw').innerHTML=info.rewards.map(r=>'<div class="row"><div><b>'+esc(r.name)+'</b><small>'+r.cost+' poin</small></div>'+
+    '<button data-r="'+r.id+'" '+(info.points<r.cost?'disabled':'')+'>Tukar</button></div>').join('')||'<small>Belum ada hadiah.</small>';
+  const wait=info.first_purchase?'':'<small>Bonus aktif setelah transaksi pertama.</small>';
+  const item=(k,done,label,url)=>'<div class="row"><div><b>'+label+' +1 poin</b><small>'+(done?'Sudah diambil ✓':'Follow dulu, lalu tekan Klaim')+'</small></div>'+
+    (done?'':'<div style="display:flex;gap:8px"><a class="btn alt" style="width:auto;padding:10px 12px" href="'+url+'" target="_blank" rel="noopener">Follow</a><button data-b="'+k+'">Klaim</button></div>')+'</div>';
+  $('bn').innerHTML=item('ig',info.ig_done,'Follow Instagram',IG)+item('tiktok',info.tt_done,'Follow TikTok',TT)+wait;
+  return true;
+}
+$('go').onclick=async()=>{
+  $('e1').textContent='';phone=$('hp').value.trim();
+  if(phone.replace(/\D/g,'').length<9){$('e1').textContent='Masukkan nomor HP yang benar';return}
+  $('go').disabled=true;
+  try{
+    if(!$('nameBox').classList.contains('hide')){
+      const n=$('nm').value.trim();if(!n)throw new Error('Isi nama dulu');
+      await rpc('member_register',{p_phone:phone,p_name:n});
+    }
+    if(await load()){store(phone)}
+    else{$('nameBox').classList.remove('hide');$('e1').textContent='Nomor baru. Isi nama untuk daftar, lalu tekan Lanjut.'}
+  }catch(e){$('e1').textContent=e.message}
+  $('go').disabled=false;
+};
+$('v-main').addEventListener('click',async e=>{
+  const b=e.target.closest('button[data-r],button[data-b]');if(!b)return;
+  $('e2').textContent='';b.disabled=true;
+  try{
+    await rpc('claim_request',b.dataset.r?{p_phone:phone,p_type:'redeem',p_reward:+b.dataset.r}:{p_phone:phone,p_type:b.dataset.b});
+    await load();
+  }catch(er){$('e2').textContent=er.message;b.disabled=false}
+});
+$('out').onclick=()=>{store(null);location.reload()};
+(async()=>{const s=saved();if(s){phone=s;$('hp').value=s;try{if(!(await load()))store(null)}catch(e){}}})();
+</script></body></html>
